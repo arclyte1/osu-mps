@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mps.local/schemas/osu-get-match-response.json",
+  "type": "object",
+  "required": ["match", "events", "users", "first_event_id", "latest_event_id", "current_game_id"],
+  "additionalProperties": false,
+  "properties": {
+    "match": { "$ref": "#/$defs/match" },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "users": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/user" }
+    },
+    "first_event_id": { "type": "integer" },
+    "latest_event_id": { "type": "integer" },
+    "current_game_id": { "type": ["integer", "null"] }
+  },
+  "$defs": {
+    "eventDetailType": {
+      "type": "string",
+      "enum": [
+        "match-created",
+        "match-disbanded",
+        "player-joined",
+        "player-left",
+        "host-changed",
+        "player-kicked",
+        "other"
+      ]
+    },
+    "gameMode": {
+      "type": "string",
+      "enum": ["osu", "fruits", "mania", "taiko"]
+    },
+    "scoringType": {
+      "type": "string",
+      "enum": ["score", "combo", "accuracy", "scorev2"]
+    },
+    "teamType": {
+      "type": "string",
+      "enum": ["head-to-head", "tag-coop", "team-vs", "tag-team-vs"]
+    },
+    "matchTeam": {
+      "type": "string",
+      "enum": ["none", "red", "blue"]
+    },
+    "scoreType": {
+      "type": "string",
+      "enum": ["legacy_match_score"]
+    },
+    "match": {
+      "type": "object",
+      "required": ["id", "start_time", "end_time", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "start_time": { "type": "string" },
+        "end_time": { "type": ["string", "null"] },
+        "name": { "type": "string" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["id", "detail", "timestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "detail": { "$ref": "#/$defs/eventDetail" },
+        "timestamp": { "type": "string" },
+        "user_id": { "type": ["integer", "null"] },
+        "game": { "$ref": "#/$defs/game" }
+      }
+    },
+    "eventDetail": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "$ref": "#/$defs/eventDetailType" },
+        "text": { "type": ["string"] }
+      }
+    },
+    "mod": {
+      "type": "string",
+      "enum": [
+        "NF",
+        "EZ",
+        "TD",
+        "HD",
+        "HR",
+        "SD",
+        "DT",
+        "RX",
+        "HT",
+        "NC",
+        "FL",
+        "Autoplay",
+        "SO",
+        "AP",
+        "PF",
+        "4K",
+        "5K",
+        "6K",
+        "7K",
+        "8K",
+        "FI",
+        "RD",
+        "LastMod",
+        "9K",
+        "10K",
+        "1K",
+        "3K",
+        "2K",
+        "ScoreV2",
+        "MR"
+      ]
+    },
+    "game": {
+      "type": "object",
+      "required": [
+        "beatmap_id",
+        "id",
+        "start_time",
+        "end_time",
+        "match_id",
+        "mode",
+        "mode_int",
+        "scoring_type",
+        "team_type",
+        "mods",
+        "scores"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "beatmap_id": { "type": "integer" },
+        "id": { "type": "integer" },
+        "start_time": { "type": "string" },
+        "end_time": { "type": ["string", "null"] },
+        "match_id": { "type": "integer" },
+        "mode": { "$ref": "#/$defs/gameMode" },
+        "mode_int": { "type": "integer" },
+        "scoring_type": { "$ref": "#/$defs/scoringType" },
+        "team_type": { "$ref": "#/$defs/teamType" },
+        "mods": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/mod" }
+        },
+        "beatmap": { "$ref": "#/$defs/beatmap" },
+        "scores": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/score" }
+        }
+      }
+    },
+    "beatmap": {
+      "type": "object",
+      "required": [
+        "beatmapset_id",
+        "difficulty_rating",
+        "id",
+        "mode",
+        "status",
+        "total_length",
+        "user_id",
+        "version",
+        "beatmapset"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "beatmapset_id": { "type": "integer" },
+        "difficulty_rating": { "type": "number" },
+        "id": { "type": "integer" },
+        "lazer_only": { "type": "boolean" },
+        "mode": { "$ref": "#/$defs/gameMode" },
+        "status": { "type": "string" },
+        "total_length": { "type": "integer" },
+        "user_id": { "type": "integer" },
+        "version": { "type": "string" },
+        "beatmapset": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/beatmapset" }
+          ]
+        }
+      }
+    },
+    "beatmapset": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "integer" },
+        "artist": { "type": ["string", "null"] },
+        "artist_unicode": { "type": ["string", "null"] },
+        "title": { "type": ["string", "null"] },
+        "title_unicode": { "type": ["string", "null"] },
+        "user_id": { "type": ["integer", "null"] },
+        "creator": { "type": ["string", "null"] },
+        "genre_id": { "type": ["integer", "null"] },
+        "language_id": { "type": ["integer", "null"] },
+        "anime_cover": { "type": "boolean" },
+        "offset": { "type": "integer" },
+        "covers": { "type": "object" },
+        "favourite_count": { "type": "integer" },
+        "hype": { "type": ["object", "null"] },
+        "nsfw": { "type": "boolean" },
+        "play_count": { "type": "integer" },
+        "preview_url": { "type": ["string", "null"] },
+        "source": { "type": ["string", "null"] },
+        "spotlight": { "type": "boolean" },
+        "status": { "type": "string" },
+        "track_id": { "type": ["integer", "null"] },
+        "video": { "type": "boolean" }
+      }
+    },
+    "score": {
+      "type": "object",
+      "required": [
+        "max_combo",
+        "mode",
+        "mode_int",
+        "mods",
+        "passed",
+        "score",
+        "statistics",
+        "type",
+        "user_id",
+        "match"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": { "type": "number" },
+        "best_id": { "type": ["integer", "null"] },
+        "created_at": { "type": "string" },
+        "id": { "type": ["integer", "null"] },
+        "max_combo": { "type": "integer" },
+        "mode": { "$ref": "#/$defs/gameMode" },
+        "mode_int": { "type": "integer" },
+        "mods": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/mod" }
+        },
+        "passed": { "type": "boolean" },
+        "perfect": { "type": "boolean" },
+        "pp": { "type": ["number", "null"] },
+        "rank": { "type": "string" },
+        "replay": { "type": "boolean" },
+        "score": { "type": "integer" },
+        "statistics": { "$ref": "#/$defs/scoreStatistics" },
+        "type": { "$ref": "#/$defs/scoreType" },
+        "user_id": { "type": "integer" },
+        "current_user_attributes": { "$ref": "#/$defs/scoreCurrentUserAttributes" },
+        "match": { "$ref": "#/$defs/scoreMatch" }
+      }
+    },
+    "scoreStatistics": {
+      "type": "object",
+      "required": ["count_100", "count_300", "count_50", "count_geki", "count_katu", "count_miss"],
+      "additionalProperties": false,
+      "properties": {
+        "count_100": { "type": "integer" },
+        "count_300": { "type": "integer" },
+        "count_50": { "type": "integer" },
+        "count_geki": { "type": "integer" },
+        "count_katu": { "type": "integer" },
+        "count_miss": { "type": "integer" }
+      }
+    },
+    "scoreMatch": {
+      "type": "object",
+      "required": ["slot", "team", "pass"],
+      "additionalProperties": false,
+      "properties": {
+        "slot": { "type": "integer" },
+        "team": { "$ref": "#/$defs/matchTeam" },
+        "pass": { "type": "boolean" }
+      }
+    },
+    "scoreCurrentUserAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pin": { "type": ["integer", "null"] }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "integer" },
+        "username": { "type": ["string", "null"] },
+        "country_code": { "type": ["string", "null"] },
+        "avatar_url": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

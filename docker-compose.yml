@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache
+      cache_to:
+        - type=local,dest=.docker-cache,mode=max
+    container_name: backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_JDBC_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      START_MATCH_ID: ${START_MATCH_ID}
+    ports:
+      - "8001:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: db
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5001:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  db:
+    driver: local
