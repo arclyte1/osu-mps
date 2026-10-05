@@ -1,6 +1,7 @@
 package osu.mps.osu.jobs
 
 import io.ktor.util.collections.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import osu.mps.config.AppConfig
@@ -69,7 +70,7 @@ class MatchesSyncScheduler(
 
     private fun createLoadMatchTask(task: LoadMatchTask) = scope.launch {
         matchIdsInDownloadQueue.add(task.matchId)
-        runCatching {
+        try {
             val lastParsedEvent = (task as? LoadMatchTask.Update)?.dto?.lastParsedEventId ?: 0L
             val lastParsedMatchTitle = if (task is LoadMatchTask.Update) {
                 repositories.matchTitleChangeRepository.getLastMatchTitleChange(task.matchId)?.title
@@ -122,8 +123,13 @@ class MatchesSyncScheduler(
                     repositories.matchParserQueueRepository.remove(task.matchId)
                 }
             }
-        }.onFailure { logger.error("Failed to load match $task", it) }
-        matchIdsInDownloadQueue.remove(task.matchId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.error("Failed to load match $task", e)
+        } finally {
+            matchIdsInDownloadQueue.remove(task.matchId)
+        }
     }
 
     private sealed class LoadMatchTask(open val matchId: Int) {

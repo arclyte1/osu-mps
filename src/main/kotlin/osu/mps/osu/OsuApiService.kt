@@ -6,6 +6,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.cio.CIOEngineConfig
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.plugin
@@ -89,6 +90,11 @@ class OsuApiService(
     private fun createOsuHttpClient(
         configure: HttpClientConfig<CIOEngineConfig>.() -> Unit = {}
     ): HttpClient = HttpClient(CIO) {
+        install(HttpTimeout) {
+            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = SOCKET_TIMEOUT_MS
+            requestTimeoutMillis = REQUEST_TIMEOUT_MS
+        }
         install(ContentNegotiation) {
             json(this@OsuApiService.json)
         }
@@ -215,5 +221,8 @@ class OsuApiService(
     companion object {
         private const val API_V2_BASE = "https://osu.ppy.sh/api/v2/"
         private const val OAUTH_TOKEN_URL = "https://osu.ppy.sh/oauth/token"
+        private const val CONNECT_TIMEOUT_MS = 10_000L
+        private const val SOCKET_TIMEOUT_MS = 30_000L
+        private const val REQUEST_TIMEOUT_MS = 60_000L
     }
 }
