@@ -9,13 +9,31 @@ import osu.mps.core.scheduler.SyncScheduler
 import osu.mps.data.MatchParserQueueDto
 import osu.mps.data.MatchParserQueueStatus
 import osu.mps.osu.GetMatchResult
-import osu.mps.app.plugins.AppRepositories
+import osu.mps.data.BeatmapRepository
+import osu.mps.data.BeatmapsetRepository
+import osu.mps.data.EventRepository
+import osu.mps.data.GameRepository
+import osu.mps.data.MatchParserQueueRepository
+import osu.mps.data.MatchRepository
+import osu.mps.data.MatchTitleChangeRepository
+import osu.mps.data.PlayerRepository
+import osu.mps.data.ScoreRepository
+import osu.mps.osu.OsuApiService
 import java.time.Instant
 import kotlin.math.min
 import kotlin.time.Duration.Companion.minutes
 
 class MatchesSyncScheduler(
-    private val repositories: AppRepositories,
+    private val matchRepository: MatchRepository,
+    private val gameRepository: GameRepository,
+    private val scoreRepository: ScoreRepository,
+    private val eventRepository: EventRepository,
+    private val playerRepository: PlayerRepository,
+    private val beatmapsetRepository: BeatmapsetRepository,
+    private val beatmapRepository: BeatmapRepository,
+    private val matchParserQueueRepository: MatchParserQueueRepository,
+    private val matchTitleChangeRepository: MatchTitleChangeRepository,
+    private val osuService: OsuApiService,
 ) : SyncScheduler(1.minutes) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -23,17 +41,17 @@ class MatchesSyncScheduler(
 
     override suspend fun runOnce() {
         val maxMatchIdInDb = maxOf(
-            repositories.matchRepository.maxId() ?: 0,
-            repositories.matchParserQueueRepository.maxId() ?: 0,
+            matchRepository.maxId() ?: 0,
+            matchParserQueueRepository.maxId() ?: 0,
         )
         val matchNewDownloadStartId = if (maxMatchIdInDb > 0) maxMatchIdInDb + 1 else AppConfig.startMatchId()
-        val lastMatchId = AppConfig.endMatchId() ?: repositories.osuService.getLastMatchId()
+        val lastMatchId = AppConfig.endMatchId() ?: osuService.getLastMatchId()
 
         val matchDownloadTasksInQueue = matchIdsInDownloadQueue.size
         val newTasksMaxCount = MAX_TASKS_IN_QUEUE - matchDownloadTasksInQueue
 
         val mpsToDownload = emptySet<LoadMatchTask>().toMutableSet()
-        val checkAgainMps = repositories.matchParserQueueRepository.selectOldestChecked(newTasksMaxCount)
+        val checkAgainMps = matchParserQueueRepository.selectOldestChecked(newTasksMaxCount)
             .filter { Instant.parse(it.lastChecked).isBefore(Instant.now().minusSeconds(DOWNLOAD_SAME_MATCH_DELAY_SECONDS)) }
             .filter { it.matchId !in matchIdsInDownloadQueue }
 
@@ -57,7 +75,7 @@ class MatchesSyncScheduler(
 
         // Insert new tasks to queue
         val newTasks = mpsToDownload.filterIsInstance<LoadMatchTask.New>()
-        repositories.matchParserQueueRepository.upsert(*newTasks.map { MatchParserQueueDto(
+        matchParserQueueRepository.upsert(*newTasks.map { MatchParserQueueDto(
             matchId = it.matchId,
             lastChecked = Instant.now().toString(),
             matchStatus = MatchParserQueueStatus.UNCHECKED,
@@ -73,9 +91,9 @@ class MatchesSyncScheduler(
         try {
             val lastParsedEvent = (task as? LoadMatchTask.Update)?.dto?.lastParsedEventId ?: 0L
             val lastParsedMatchTitle = if (task is LoadMatchTask.Update) {
-                repositories.matchTitleChangeRepository.getLastMatchTitleChange(task.matchId)?.title
+                matchTitleChangeRepository.getLastMatchTitleChange(task.matchId)?.title
             } else null
-            val matchResult = repositories.osuService.getMatch(task.matchId, lastParsedEvent, lastParsedMatchTitle)
+            val matchResult = osuService.getMatch(task.matchId, lastParsedEvent, lastParsedMatchTitle)
 
             val queueDto = when(task) {
                 is LoadMatchTask.New -> MatchParserQueueDto(
@@ -95,20 +113,20 @@ class MatchesSyncScheduler(
                         errorText = matchResult.reason,
                         rawJson = matchResult.rawJson,
                     )
-                    repositories.matchParserQueueRepository.upsert(updatedQueueDto)
+                    matchParserQueueRepository.upsert(updatedQueueDto)
                 }
                 is GetMatchResult.Success -> {
-                    repositories.matchRepository.upsert(matchResult.match)
-                    repositories.eventRepository.upsert(*matchResult.events.toTypedArray())
-                    repositories.gameRepository.upsert(*matchResult.games.toTypedArray())
-                    repositories.scoreRepository.upsert(*matchResult.scores.toTypedArray())
-                    repositories.beatmapsetRepository.upsert(*matchResult.beatmapsets.toTypedArray())
-                    repositories.beatmapRepository.upsert(*matchResult.beatmaps.toTypedArray())
-                    repositories.playerRepository.upsert(*matchResult.players.toTypedArray())
-                    repositories.matchTitleChangeRepository.upsert(*matchResult.matchTitleChanges.toTypedArray())
+                    matchRepository.upsert(matchResult.match)
+                    eventRepository.upsert(*matchResult.events.toTypedArray())
+                    gameRepository.upsert(*matchResult.games.toTypedArray())
+                    scoreRepository.upsert(*matchResult.scores.toTypedArray())
+                    beatmapsetRepository.upsert(*matchResult.beatmapsets.toTypedArray())
+                    beatmapRepository.upsert(*matchResult.beatmaps.toTypedArray())
+                    playerRepository.upsert(*matchResult.players.toTypedArray())
+                    matchTitleChangeRepository.upsert(*matchResult.matchTitleChanges.toTypedArray())
 
                     if (matchResult.isReachedEnd) {
-                        repositories.matchParserQueueRepository.remove(task.matchId)
+                        matchParserQueueRepository.remove(task.matchId)
                     } else {
                         val updatedQueueDto = queueDto.copy(
                             matchStatus = MatchParserQueueStatus.ONGOING,
@@ -116,11 +134,11 @@ class MatchesSyncScheduler(
                             errorText = null,
                             rawJson = null,
                         )
-                        repositories.matchParserQueueRepository.upsert(updatedQueueDto)
+                        matchParserQueueRepository.upsert(updatedQueueDto)
                     }
                 }
                 GetMatchResult.Private, GetMatchResult.NotFound -> {
-                    repositories.matchParserQueueRepository.remove(task.matchId)
+                    matchParserQueueRepository.remove(task.matchId)
                 }
             }
         } catch (e: CancellationException) {

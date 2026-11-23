@@ -1,6 +1,7 @@
 package osu.mps.app
 
 import osu.mps.osu.jobs.MatchesSyncScheduler
+import osu.mps.app.di.appModule
 import osu.mps.app.plugins.configureDatabases
 import osu.mps.app.plugins.configureHTTP
 import osu.mps.app.plugins.configureRouting
@@ -11,6 +12,9 @@ import io.ktor.server.application.install
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.callloging.CallLogging
 import io.ktor.server.request.path
+import org.koin.ktor.ext.inject
+import org.koin.ktor.plugin.Koin
+import org.koin.logger.slf4jLogger
 import org.slf4j.event.Level
 
 fun main(args: Array<String>): Unit = EngineMain.main(args)
@@ -23,11 +27,18 @@ fun Application.module() {
 
     configureSerialization()
     configureHTTP()
-    val repositories = configureDatabases()
-    val matchesSyncScheduler = MatchesSyncScheduler(repositories)
+    val parserVersion = environment.config.property("parser.version").getString().toShortOrNull()
+        ?.takeIf { it > 0 }
+        ?: error("parser.version must be a positive smallint")
+    configureDatabases()
+    install(Koin) {
+        slf4jLogger()
+        modules(appModule(parserVersion))
+    }
+    val matchesSyncScheduler by inject<MatchesSyncScheduler>()
     matchesSyncScheduler.start()
     environment.monitor.subscribe(ApplicationStopped) {
         matchesSyncScheduler.stop()
     }
-    configureRouting(repositories)
+    configureRouting()
 }

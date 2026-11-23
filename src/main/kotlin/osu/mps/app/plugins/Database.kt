@@ -2,44 +2,17 @@ package osu.mps.app.plugins
 
 import osu.mps.config.AppConfig
 import osu.mps.data.AllTables
-import osu.mps.data.BeatmapRepository
-import osu.mps.data.BeatmapsetRepository
-import osu.mps.data.EventRepository
-import osu.mps.data.GameRepository
-import osu.mps.data.MatchParserQueueRepository
-import osu.mps.data.MatchRepository
-import osu.mps.data.PlayerRepository
 import osu.mps.data.SchemaPostStatements
 import osu.mps.data.SchemaPreStatements
-import osu.mps.data.ScoreRepository
 import osu.mps.data.migration.DatabaseMigrations
-import osu.mps.osu.OsuApiService
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
-import osu.mps.data.MatchTitleChangeRepository
 
-data class AppRepositories(
-    val matchRepository: MatchRepository,
-    val gameRepository: GameRepository,
-    val scoreRepository: ScoreRepository,
-    val eventRepository: EventRepository,
-    val playerRepository: PlayerRepository,
-    val beatmapsetRepository: BeatmapsetRepository,
-    val beatmapRepository: BeatmapRepository,
-    val matchParserQueueRepository: MatchParserQueueRepository,
-    val matchTitleChangeRepository: MatchTitleChangeRepository,
-    val osuService: OsuApiService,
-)
-
-fun Application.configureDatabases(): AppRepositories {
-    val parserVersion = environment.config.property("parser.version").getString().toShortOrNull()
-        ?.takeIf { it > 0 }
-        ?: error("parser.version must be a positive smallint")
-
+fun Application.configureDatabases() {
     val config = HikariConfig().apply {
         driverClassName = "org.postgresql.Driver"
         jdbcUrl = AppConfig.jdbcUrl()
@@ -69,20 +42,4 @@ fun Application.configureDatabases(): AppRepositories {
         SchemaPostStatements.forEach { exec(it.createStatement().single()) }
     }
 
-    val osuService = OsuApiService(
-        clientId = AppConfig.osuClientId(),
-        clientSecret = AppConfig.osuClientSecret()
-    )
-    return AppRepositories(
-        matchRepository = MatchRepository(parserVersion),
-        gameRepository = GameRepository(),
-        scoreRepository = ScoreRepository(),
-        eventRepository = EventRepository(),
-        playerRepository = PlayerRepository(),
-        beatmapsetRepository = BeatmapsetRepository(),
-        beatmapRepository = BeatmapRepository(),
-        matchParserQueueRepository = MatchParserQueueRepository(),
-        matchTitleChangeRepository = MatchTitleChangeRepository(),
-        osuService = osuService,
-    )
 }

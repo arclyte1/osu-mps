@@ -35,6 +35,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.53.0")
     implementation("org.jetbrains.exposed:exposed-java-time:0.53.0")
     implementation("com.zaxxer:HikariCP:5.1.0")
+    implementation("io.insert-koin:koin-ktor:3.5.6")
+    implementation("io.insert-koin:koin-logger-slf4j:3.5.6")
     implementation("org.postgresql:postgresql:42.7.3")
 
     implementation("ch.qos.logback:logback-classic:1.5.6")
