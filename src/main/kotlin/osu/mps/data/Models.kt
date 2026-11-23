@@ -168,6 +168,7 @@ object MatchTable : Table("match") {
     val name = text("name").nullable()
     val startTime = timestamp("start_time").nullable()
     val endTime = timestamp("end_time").nullable()
+    val parserVersion = short("parser_version")
 
     override val primaryKey = PrimaryKey(id)
 }

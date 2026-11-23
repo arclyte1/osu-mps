@@ -12,6 +12,7 @@ import osu.mps.data.PlayerRepository
 import osu.mps.data.SchemaPostStatements
 import osu.mps.data.SchemaPreStatements
 import osu.mps.data.ScoreRepository
+import osu.mps.data.migration.DatabaseMigrations
 import osu.mps.osu.OsuApiService
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -35,6 +36,10 @@ data class AppRepositories(
 )
 
 fun Application.configureDatabases(): AppRepositories {
+    val parserVersion = environment.config.property("parser.version").getString().toShortOrNull()
+        ?.takeIf { it > 0 }
+        ?: error("parser.version must be a positive smallint")
+
     val config = HikariConfig().apply {
         driverClassName = "org.postgresql.Driver"
         jdbcUrl = AppConfig.jdbcUrl()
@@ -59,6 +64,7 @@ fun Application.configureDatabases(): AppRepositories {
 
     transaction {
         SchemaPreStatements.forEach { exec(it.createStatement().single()) }
+        DatabaseMigrations.run()
         SchemaUtils.createMissingTablesAndColumns(*AllTables)
         SchemaPostStatements.forEach { exec(it.createStatement().single()) }
     }
@@ -68,7 +74,7 @@ fun Application.configureDatabases(): AppRepositories {
         clientSecret = AppConfig.osuClientSecret()
     )
     return AppRepositories(
-        matchRepository = MatchRepository(),
+        matchRepository = MatchRepository(parserVersion),
         gameRepository = GameRepository(),
         scoreRepository = ScoreRepository(),
         eventRepository = EventRepository(),

@@ -5,3 +5,6 @@ ktor:
   application:
     modules:
       - osu.mps.app.ApplicationKt.module
+
+parser:
+  version: 3

@@ -4,17 +4,17 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.alias
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.max
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 
-class MatchRepository {
+class MatchRepository(private val parserVersion: Short) {
     fun upsert(vararg matches: MatchDto): Int = transaction {
-        MatchTable.upsertCount(matches) { match ->
+        MatchTable.upsertCount(matches, onUpdateExclude = listOf(MatchTable.parserVersion)) { match ->
             this[MatchTable.id] = match.id
+            this[MatchTable.parserVersion] = parserVersion
             this[MatchTable.name] = match.name
             this[MatchTable.startTime] = match.startTime.toInstantOrNull()
             this[MatchTable.endTime] = match.endTime.toInstantOrNull()

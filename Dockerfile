@@ -7,7 +7,7 @@ ENV GRADLE_USER_HOME=/home/gradle/.gradle
 
 COPY gradle/ gradle/
 COPY gradlew gradlew.bat settings.gradle.kts build.gradle.kts gradle.properties ./
-RUN chmod +x gradlew
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
 
 # Dependencies layer: reused until Gradle build files change
 RUN --mount=type=cache,target=/home/gradle/.gradle,sharing=locked \
