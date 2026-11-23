@@ -17,7 +17,6 @@ internal fun <E> Table.upsertCount(
 
     val statement = BatchUpsertStatement(
         table = this,
-        onUpdate = null,
         onUpdateExclude = onUpdateExclude,
         where = null,
         shouldReturnGeneratedValues = false,
