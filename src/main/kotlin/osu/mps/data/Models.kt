@@ -211,7 +211,8 @@ object ScoreTable : Table("score") {
     val gameId = long("game_id")
     val userId = integer("user_id")
     val score = integer("score")
-    val mods = integer("mods")
+    /** Null means the value is unknown due to outdated data. */
+    val mods = integer("mods").nullable()
     val maxCombo = short("max_combo")
     val count100 = short("count_100")
     val count300 = short("count_300")
@@ -220,9 +221,12 @@ object ScoreTable : Table("score") {
     val countKatu = short("count_katu")
     val countMiss = short("count_miss")
     val passed = bool("passed")
-    val matchSlot = short("match_slot")
-    val matchTeam = pgEnum<MatchTeam>("match_team", "matchteam")
-    val matchPass = bool("match_pass")
+    /** Null means the value is unknown due to outdated data. */
+    val matchSlot = short("match_slot").nullable()
+    /** Null means the value is unknown due to outdated data. */
+    val matchTeam = pgEnum<MatchTeam>("match_team", "matchteam").nullable()
+    /** Null means the value is unknown due to outdated data. */
+    val matchPass = bool("match_pass").nullable()
 
     override val primaryKey = PrimaryKey(matchId, gameId, userId)
 
